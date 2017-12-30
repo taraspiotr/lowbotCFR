@@ -73,14 +73,15 @@ namespace lowbotCFR
 
             double Util = CFR(Deck, "r", Hand1, Hand2, 1, 1);
 
-            if (ID == 0 && i % 1000 == 0)
+            if (ID == 0)
             {
-                Console.Write("\rProgress: {0}%\tEstimated time left: {1}\t\t\t\t\t", i * 100 / iter, GetTime((watch.ElapsedMilliseconds / 1000) * (iter - i) / i));
+                if (i % 1000 == 0)
+                    Console.Write("\rProgress: {0}%\tEstimated time left: {1}\t\t\t\t\t", i * 100 / iter, GetTime((watch.ElapsedMilliseconds / 1000) * (iter - i) / i));
 
+                if (i % bu == 0)
+                    SaveToFile("strategy_backup.xml");
             }
 
-            if (i % bu == 0)
-                SaveToFile("strategy_backup.xml");
 
             return Util;
         }
