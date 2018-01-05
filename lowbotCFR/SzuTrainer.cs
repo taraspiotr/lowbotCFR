@@ -3,30 +3,47 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Xml;
+using System.IO;
 
 namespace lowbotCFR
 {
-    internal class DrawTrainer
+    internal class SzuTrainer
     {
         private readonly int iterations;
         private readonly int num_threads;
         private readonly string path;
         private Stopwatch watch;
-        private static SerializableDictionary<String, Node> NodeMap = new SerializableDictionary<string, Node>();
-        private Draw Draw;
+        private static SerializableDictionary<String, Node> NodeMap;
+        private Szu Szu;
+        private readonly double[] range1;
+        private readonly double[] range2;
+        private static List<string>[] buckets;
 
-        public DrawTrainer(int iter, int nt, Draw d)
+        public SzuTrainer(int iter, int nt, Szu d)
         {
+            NodeMap = new SerializableDictionary<string, Node>();
             iterations = iter;
             num_threads = nt;
-            Draw = d;
+            Szu = d;
         }
 
-        public DrawTrainer(int iter, int nt, Draw d, string file)
+        public SzuTrainer(int iter, int nt, Szu d, double[] r1, double[] r2, int num_buckets)
         {
+            NodeMap = new SerializableDictionary<string, Node>();
             iterations = iter;
             num_threads = nt;
-            Draw = d;
+            Szu = d;
+            range1 = r1;
+            range2 = r2;
+            buckets = BucketHands.GetBuckets(num_buckets);
+        }
+
+        public SzuTrainer(int iter, int nt, Szu d, string file)
+        {
+            NodeMap = new SerializableDictionary<string, Node>();
+            iterations = iter;
+            num_threads = nt;
+            Szu = d;
             path = file;
             if (path != "")
             {
@@ -49,6 +66,29 @@ namespace lowbotCFR
             {
                 NodeMap.WriteXml(writer);
             }
+            Path = @"E:\Lowbot\Strategy\" + FileName;
+            using (TextWriter tw = new StreamWriter(Path))
+            {
+                foreach (Node n in NodeMap.Values)
+                    tw.WriteLine(n.ToString());
+            }
+        }
+
+        private int GetBucket(double[] range)
+        {
+            Random rng = new Random();
+            double r = rng.NextDouble();
+            double probSum = 0.0;
+            int i = 0;
+            while (i < range.Length - 1)
+            {
+                probSum += range[i];
+                if (r < probSum)
+                    break;
+                i++;
+            }
+
+            return i;
         }
 
         private double Train(int iter, int ID, int bu)
@@ -73,11 +113,15 @@ namespace lowbotCFR
 
         private double Iteration(int i, int iter, int ID, int bu)
         {
-            string Deck = Draw.GenerateDeck();
-            string Hand1 = Draw.SortHand(Deck.Substring(0, Draw.HAND_CARDS));
-            string Hand2 = Draw.SortHand(Deck.Substring(Draw.HAND_CARDS, Draw.HAND_CARDS));
+            string Deck = Szu.GenerateDeck();
+            string Hand1 = Szu.SortHand(Deck.Substring(0, Szu.HAND_CARDS));
+            string Hand2 = Szu.SortHand(Deck.Substring(Szu.HAND_CARDS, Szu.HAND_CARDS));
+            //Random rnd = new Random();
+            //int b1 = GetBucket(range1); int b2 = GetBucket(range2);
+            //string Hand1 = buckets[b1][rnd.Next(buckets[b1].Count)];
+            //string Hand2 = buckets[b2][rnd.Next(buckets[b2].Count)];
 
-            double Util = CFR(Deck, "r", Hand1, Hand2, 1, 1);
+            double Util = CFR("", "r", Hand1, Hand2, 0.5, 1, 1, 1);
 
             if (ID == 0)
             {
@@ -87,7 +131,6 @@ namespace lowbotCFR
                 if (i % bu == 0)
                     SaveToFile("strategy_backup.xml");
             }
-
 
             return Util;
         }
@@ -108,34 +151,40 @@ namespace lowbotCFR
             return time;
         }
 
-        private double CFR(string Deck, string History, string Hand1, string Hand2, double p0, double p1)
+        private double CFR(string Deck, string History, string Hand1, string Hand2, double Pot1, double Pot2, double p0, double p1)
         {
-            int Player = Draw.GetCurrentPlayer(History);
+            int Player = Szu.GetCurrentPlayer(History);
             int Opponent = 1 - Player;
             string PlayerHand = (Player == 0) ? Hand1 : Hand2;
             string OpponentHand = (Opponent == 0) ? Hand1 : Hand2;
-            string Actions = Draw.GetLegalActions(History);
 
-            if (Actions == Draw.TERMINAL_FOLD)
-                return Draw.GetPotContribution(History, Opponent);
+            double PlayerPot = (Player == 0) ? Pot1 : Pot2;
+            double OpponentPot = (Opponent == 0) ? Pot1 : Pot2;
+
+            string Actions = Szu.GetLegalActions(History);
+
+            if (Actions == Szu.TERMINAL_FOLD)
+                return OpponentPot;
+            //return Szu.GetPotContribution(History, Opponent);
 
             if (Actions == Draw.TERMINAL_CALL)
-                return Draw.GetPotContribution(History, Opponent) * Draw.CompareHands(PlayerHand, OpponentHand);
+                return OpponentPot * Szu.CompareHands(PlayerHand, OpponentHand);
+            //return Szu.GetPotContribution(History, Opponent) * Szu.CompareHands(PlayerHand, OpponentHand);
 
             if (p0 == 0 && p1 == 0)
                 return 0;
 
             //string InfoSet = Draw.CreateInfoSet(History, PlayerHand);
-            string InfoSet = PlayerHand.Substring(PlayerHand.Length - Draw.HAND_CARDS, Draw.HAND_CARDS) + History;
+            string InfoSet = PlayerHand.Substring(PlayerHand.Length - Szu.HAND_CARDS, Szu.HAND_CARDS) + History;
 
-            if (InfoSet == "44rrc(20)65")
-                Console.WriteLine("HERE!!!");
+            //if (InfoSet == "44rrc(20)65")
+            //    Console.WriteLine("HERE!!!");
 
             Node Node = null;
             int NumActions;
 
             if (Actions == Draw.DRAW || Actions == Draw.LAST_DRAW)
-                NumActions = (int)Math.Pow(2, Draw.HAND_CARDS);
+                NumActions = (int)Math.Pow(2, Szu.HAND_CARDS);
             else
                 NumActions = Actions.Length;
             Node = new Node();
@@ -155,20 +204,29 @@ namespace lowbotCFR
             for (int i = 0; i < NumActions; i++)
             {
                 string NextHistory;
+                double NewPot = PlayerPot;
                 string NewHand = String.Copy(PlayerHand);
                 if (Actions == Draw.DRAW || Actions == Draw.LAST_DRAW)
                 {
-                    int NumDraw = Draw.DrawCards(History, Deck, PlayerHand, ref NewHand, i);
-                    if (Actions == Draw.DRAW)
+                    int NumDraw = Szu.DrawCards(History, Deck, PlayerHand, ref NewHand, i);
+                    if (Actions == Szu.DRAW)
                         NextHistory = History + "(" + Convert.ToString(NumDraw);
                     else
                         NextHistory = History + Convert.ToString(NumDraw) + ")";
                 }
                 else
+                {
                     NextHistory = History + Actions[i];
+                    if (Actions[i] == 'r')
+                        NewPot = OpponentPot * 2;
+                    else if (Actions[i] == 'p')
+                        NewPot = OpponentPot * 3;
+                    else if (Actions[i] == 'c')
+                        NewPot = OpponentPot;
+                }
 
-                Util[i] = (Player == 0) ? -CFR(Deck, NextHistory, NewHand, OpponentHand, p0 * Strategy[i], p1) : -CFR(Deck, NextHistory, OpponentHand, NewHand, p0, p1 * Strategy[i]);
-                if (Draw.GetCurrentPlayer(History) == Draw.GetCurrentPlayer(NextHistory))
+                Util[i] = (Player == 0) ? -CFR(Deck, NextHistory, NewHand, OpponentHand, NewPot, OpponentPot, p0 * Strategy[i], p1) : -CFR(Deck, NextHistory, OpponentHand, NewHand, OpponentPot, NewPot, p0, p1 * Strategy[i]);
+                if (Szu.GetCurrentPlayer(History) == Szu.GetCurrentPlayer(NextHistory))
                     Util[i] = -Util[i];
 
                 NodeUtil += Strategy[i] * Util[i];
@@ -207,20 +265,22 @@ namespace lowbotCFR
             return Strategy;
         }
 
-        public void main()
+        public double main()
         {
             List<Task<double>> Tasks = new List<Task<double>>();
             double Util = 0.0;
             for (int i = 0; i < num_threads; i++)
             {
                 int temp = i;
-                Tasks.Add(Task.Factory.StartNew<double>(() => Train(iterations / num_threads, temp, iterations /(20 * num_threads))));
+                Tasks.Add(Task.Factory.StartNew<double>(() => Train(iterations / num_threads, temp, iterations / (20 * num_threads))));
             }
             foreach (Task<double> T in Tasks)
                 Util += T.Result;
 
             Console.WriteLine("\nAverage game value: {0}", Util / iterations);
             SaveToFile("strategy.xml");
+
+            return Util / iterations;
         }
     }
 }

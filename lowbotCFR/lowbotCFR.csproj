@@ -45,11 +45,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Draw.cs" />
+    <Compile Include="BucketHands.cs" />
+    <Compile Include="Draw - Copy.cs" />
+    <Compile Include="Szu.cs" />
+    <Compile Include="SzuTrainer.cs" />
     <Compile Include="DrawTrainer.cs" />
     <Compile Include="Node.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Razz.cs" />
     <Compile Include="SerializableDictionary.cs" />
   </ItemGroup>
   <ItemGroup>

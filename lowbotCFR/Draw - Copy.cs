@@ -4,23 +4,22 @@ using System.Linq;
 
 namespace lowbotCFR
 {
-    internal class Draw
+    public class Draw
     {
-        public const int NUM_CARDS = 5;
-        public const int NUM_SUITS = 4;
-        public const int HAND_CARDS = 2;
+        public readonly int NUM_CARDS;
+        public readonly int NUM_SUITS;
+        public readonly int HAND_CARDS;
+        public readonly int NUM_DRAWS;
+        public readonly int SB_ROUNDS;
+        public readonly int CAP;
+        public const double SMALL_BET = 1.0;
+        public const double BIG_BET = 2.0;
         public const string DRAW = "DRAW";
         public const string LAST_DRAW = "LAST_DRAW";
         public const string TERMINAL_FOLD = "TERMINAL_FOLD";
         public const string TERMINAL_CALL = "TERMINAL_CALL";
-        public const int NUM_DRAWS = 1;
-        public const int SB_ROUNDS = 2;
-        public const int CAP = 2;
-        public const double SMALL_BET = 1.0;
-        public const double BIG_BET = 2.0;
 
-
-        private static readonly Dictionary<int, char> ValuesToSigns = new Dictionary<int, char>
+        private readonly Dictionary<int, char> ValuesToSigns = new Dictionary<int, char>
             {
                 {1, '2' },
                 {2, '3' },
@@ -37,7 +36,7 @@ namespace lowbotCFR
                 {13, 'A' }
             };
 
-        private static readonly Dictionary<char, int> SignsToValues = new Dictionary<char, int>
+        private readonly Dictionary<char, int> SignsToValues = new Dictionary<char, int>
             {
                 {'2', 1 },
                 {'3', 2 },
@@ -54,7 +53,7 @@ namespace lowbotCFR
                 {'A', 13 }
             };
 
-        private static readonly Dictionary<int, char> SuitsToSigns = new Dictionary<int, char>
+        private readonly Dictionary<int, char> SuitsToSigns = new Dictionary<int, char>
             {
                 {1, 'c' },
                 {2, 'd' },
@@ -62,7 +61,7 @@ namespace lowbotCFR
                 {4, 's' }
             };
 
-        private static readonly Dictionary<char, int> SignsToSuits = new Dictionary<char, int>
+        private readonly Dictionary<char, int> SignsToSuits = new Dictionary<char, int>
             {
                 {'c', 1 },
                 {'d', 2 },
@@ -70,7 +69,17 @@ namespace lowbotCFR
                 {'s', 4 }
             };
 
-        public static string GetLegalActions(string History)
+        public Draw(int num_cards, int num_suits, int hand_cards, int num_draws, int sb_rounds, int cap)
+        {
+            NUM_CARDS = num_cards;
+            NUM_SUITS = num_suits;
+            HAND_CARDS = hand_cards;
+            NUM_DRAWS = num_draws;
+            SB_ROUNDS = sb_rounds;
+            CAP = cap;
+        }
+
+        public string GetLegalActions(string History)
         {
             string[] Split = History.Split('(', ')').Where(e => e != "").ToArray();
 
@@ -101,7 +110,6 @@ namespace lowbotCFR
                     return TERMINAL_CALL;
             }
 
-
             if (LastRound.Last() == 'r')
             {
                 if (LastRound.Count(e => e == 'r') < CAP)
@@ -110,11 +118,10 @@ namespace lowbotCFR
                     return "fc";
             }
 
-
             return "fcr";
         }
 
-        public static int GetCurrentPlayer(string History)
+        public int GetCurrentPlayer(string History)
         {
             string[] Split = History.Split('(', ')').Where(e => e != "").ToArray();
             string LastRound = Split.Last();
@@ -128,7 +135,7 @@ namespace lowbotCFR
             return 1 - LastRound.Length % 2;
         }
 
-        public static double GetPotContribution(string History, int Player)
+        public double GetPotContribution(string History, int Player)
         {
             string[] Rounds = History.Split('(', ')').Where(e => e != "").Where((e, i) => i % 2 == 0).ToArray();
 
@@ -149,10 +156,9 @@ namespace lowbotCFR
             }
 
             return Pot;
-
         }
 
-        public static string GenerateDeck(int seed = -1)
+        public string GenerateDeck(int seed = -1)
         {
             Random rng;
             if (seed == -1)
@@ -176,7 +182,52 @@ namespace lowbotCFR
             return new string(Deck);
         }
 
-        public static string SortHand(string HandS)
+        public string GenerateDeckFull(int seed = -1)
+        {
+            Random rng;
+            if (seed == -1)
+                rng = new Random();
+            else
+                rng = new Random(seed);
+
+            char[] Deck = new char[NUM_CARDS * NUM_SUITS * 2];
+            for (int i = 0; i < NUM_CARDS; i++)
+                for (int j = 0; j < NUM_SUITS; j++)
+                {
+                    Deck[2 * (j * NUM_CARDS + i)] = ValuesToSigns[i + 1];
+                    Deck[2 * (j * NUM_CARDS + i) + 1] = SuitsToSigns[j + 1];
+                }
+
+            for (int i = Deck.Length / 2 - 1; i > 0; i--)
+            {
+                int SwapIndex = rng.Next(i + 1);
+                char tmp1 = Deck[2*i];
+                char tmp2 = Deck[2*i + 1];
+                Deck[2 * i] = Deck[2 * SwapIndex];
+                Deck[2 * i + 1] = Deck[2 * SwapIndex + 1];
+                Deck[2 * SwapIndex] = tmp1;
+                Deck[2 * SwapIndex + 1] = tmp2;
+            }
+
+            return new string(Deck);
+        }
+
+        public string ShuffleDeck(string d)
+        {
+            Random rng = new Random();
+            char[] Deck = d.ToArray();
+            for (int i = Deck.Length - 1; i > 0; i--)
+            {
+                int SwapIndex = rng.Next(i + 1);
+                char tmp = Deck[i];
+                Deck[i] = Deck[SwapIndex];
+                Deck[SwapIndex] = tmp;
+            }
+
+            return new string(Deck);
+        }
+
+        public string SortHand(string HandS)
         {
             char[] Hand = HandS.ToCharArray();
             int[] HandValues = new int[Hand.Length];
@@ -190,7 +241,30 @@ namespace lowbotCFR
             return new string(Hand);
         }
 
-        public static int CompareHands(string Hand1, string Hand2)
+        public string SortHandFull(string HandS)
+        {
+            char[] Hand = HandS.ToCharArray();
+            int[] HandValues = new int[Hand.Length/2];
+            int[] HandSuits = new int[Hand.Length/2];
+            for (int i = 0; i < Hand.Length/2; i++)
+            {
+                HandValues[i] = SignsToValues[Hand[i*2]];
+                HandSuits[i] = SignsToSuits[Hand[i*2 + 1]];
+            }
+            Array.Sort(HandValues, HandSuits);
+            Array.Reverse(HandValues);
+            Array.Reverse(HandSuits);
+
+            for (int i = 0; i < Hand.Length / 2; i++)
+            {
+                Hand[2 * i] = ValuesToSigns[HandValues[i]];
+                Hand[2 * i + 1] = SuitsToSigns[HandSuits[i]];
+            }
+
+            return new string(Hand);
+        }
+
+        public int CompareHands(string Hand1, string Hand2)
         {
             Hand1 = Hand1.Substring(Hand1.Length - HAND_CARDS, HAND_CARDS);
             Hand2 = Hand2.Substring(Hand2.Length - HAND_CARDS, HAND_CARDS);
@@ -201,15 +275,15 @@ namespace lowbotCFR
             for (int i = 0; i < Value1.Length; i++)
             {
                 if (Value1[i] < Value2[i])
-                    return 1;
-                else if (Value1[i] > Value2[i])
                     return -1;
+                else if (Value1[i] > Value2[i])
+                    return 1;
             }
 
             return 0;
         }
 
-        public static string CreateInfoSet(string History, string Hand)
+        public string CreateInfoSet(string History, string Hand)
         {
             string InfoSet = Hand.Substring(0, HAND_CARDS);
             int index = HAND_CARDS;
@@ -229,7 +303,7 @@ namespace lowbotCFR
             return InfoSet;
         }
 
-        public static int DrawCards(string History, string Cards, string Hand, ref string AfterHand, int ActionNumber)
+        public int DrawCards(string History, string Cards, string Hand, ref string AfterHand, int ActionNumber)
         {
             string[] Draws = History.Split('(', ')').Where(e => e != "").Where((e, i) => i % 2 == 1).ToArray();
             int LastCard = 2 * HAND_CARDS;
@@ -253,12 +327,13 @@ namespace lowbotCFR
                 }
             }
 
-            AfterHand = Hand + Draw.SortHand(NewHand);
+            AfterHand = Hand + SortHand(NewHand);
             return Action.Count(e => e == '1');
         }
 
-        private static int[] GetHandValue(string Hand)
+        public int[] GetHandValue(string Hand)
         {
+            Hand = SortHand(Hand);
             int[] HandValues = new int[Hand.Length];
             for (int i = 0; i < Hand.Length; i++)
                 HandValues[i] = SignsToValues[Hand[i]];
@@ -269,23 +344,34 @@ namespace lowbotCFR
                 .ThenByDescending(e => e.Key)
                 .ToList();
 
-            //if (Counts[0].Count() == 4) // Four of a kind
-            //    return new int[6] { 10, Counts[0].Key, 0, 0, 0, 0 };
-            //if (Counts[0].Count() == 3 && Counts[1].Count() == 2) // Full house
-            //    return new int[6] { 9, Counts[0].Key, Counts[1].Key, 0, 0, 0 };
-            //if (Counts[0].Count() == 3) // Three of a kind
-            //    return new int[6] { 9, Counts[0].Key, Counts[1].Key, Counts[2].Key, 0, 0 };
-            //if (Counts[0].Count() == 2 && Counts[1].Count() == 2) // Two pairs
-            //    return new int[6] { 8, Counts[0].Key, Counts[1].Key, Counts[2].Key, 0, 0 };
-            //if (Counts[0].Count() == 2) // Pair
-            //    return new int[6] { 7, Counts[0].Key, Counts[1].Key, Counts[2].Key, Counts[3].Key, 0 };
+            if (HAND_CARDS == 5)
+            {
+                if (Counts[0].Count() == 4) // Four of a kind
+                    return new int[6] { 10, Counts[0].Key, Counts[1].Key, 0, 0, 0 };
+                if (Counts[0].Count() == 3 && Counts[1].Count() == 2) // Full house
+                    return new int[6] { 9, Counts[0].Key, Counts[1].Key, 0, 0, 0 };
+                if (Counts[0].Count() == 3) // Three of a kind
+                    return new int[6] { 7, Counts[0].Key, Counts[1].Key, Counts[2].Key, 0, 0 };
+                if (Counts[0].Count() == 2 && Counts[1].Count() == 2) // Two pairs
+                    return new int[6] { 6, Counts[0].Key, Counts[1].Key, Counts[2].Key, 0, 0 };
+                if (Counts[0].Count() == 2) // Pair
+                    return new int[6] { 5, Counts[0].Key, Counts[1].Key, Counts[2].Key, Counts[3].Key, 0 };
+                if (HandValues[0] == HandValues[4] + 4) // Straight
+                    return new int[6] { 8, Counts[0].Key, 0, 0, 0, 0 };
 
-            //return new int[6] { 6, Counts[0].Key, Counts[1].Key, Counts[2].Key, Counts[3].Key, Counts[4].Key };
-
-            if (Counts[0].Count() == 2) // Pair
-                return new int[3] { 1, Counts[0].Key, 0 };
+                return new int[6] { 4, Counts[0].Key, Counts[1].Key, Counts[2].Key, Counts[3].Key, Counts[4].Key };
+            }
+            else if (HAND_CARDS == 2)
+            {
+                if (Counts[0].Count() == 2) // Pair
+                    return new int[3] { 1, Counts[0].Key, 0 };
+                else
+                    return new int[3] { 0, Counts[0].Key, Counts[1].Key };
+            }
             else
-                return new int[3] { 0, Counts[0].Key, Counts[1].Key };
+            {
+                return HandValues;
+            }
         }
     }
 }
