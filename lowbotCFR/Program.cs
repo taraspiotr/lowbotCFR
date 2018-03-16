@@ -2,6 +2,7 @@
 using CommandLine.Text;
 using System;
 using System.Diagnostics;
+using System.IO;
 
 namespace lowbotCFR
 {
@@ -64,11 +65,14 @@ namespace lowbotCFR
         {
             Stopwatch StopWatch = new Stopwatch();
             StopWatch.Start();
-            SzuTrainer T = new SzuTrainer(500000000, 6, new Szu());
-            double util = T.main();
+            Trainer T = new Trainer(50000000, 6, new Draw(hand_cards:1));
+            T.main();
+            //SzuTrainer K = new SzuTrainer(2000000, 6, new Szu());
+            //K.main();
+            ////BucketHands.Bucket(100, 2.5);
 
             StopWatch.Stop();
-            Console.WriteLine("Runtime = {0}", DrawTrainer.GetTime(StopWatch.ElapsedMilliseconds / 1000));
+
             //string History = "(JT)rc(AK)cc(22)asdf(Q3)fasdf(-)";
             //Razz Razz = new Razz(13, 4, 5, 2, 3);
             //Console.WriteLine(Razz.GetCurrentPlayer(History));
@@ -77,21 +81,35 @@ namespace lowbotCFR
             //int num_buckets = 100;
             //Stopwatch StopWatch = new Stopwatch();
             //StopWatch.Start();
+            //int i = 0;
 
-            //for (int i = 0; i < 10; i++)
+            //while (true)
             //{
-            //    double[] range1 = GenerateRange(num_buckets);
-            //    double[] range2 = GenerateRange(num_buckets);
+            //    Console.WriteLine("================ ITERATION #{0} ================", i + 1);
+            //    Random rnd = new Random();
+            //    double[] range1 = GenerateRange(num_buckets, rnd);
+            //    double[] range2 = GenerateRange(num_buckets, rnd);
 
-            //    SzuTrainer T = new SzuTrainer(1000000, 4, new Szu(), range1, range2, num_buckets);
+            //    SzuTrainer T = new SzuTrainer(1000000, 6, new Szu(), range1, range2, num_buckets);
             //    double util = T.main();
-            //    using (StreamWriter w = File.AppendText(@"E:\Lowbot\ranges.csv"))
+            //    double[] bucketsUtil_zero = new double[num_buckets];
+            //    double[] bucketsUtil_one = new double[num_buckets];
+            //    for (int k = 0; k < num_buckets; k++)
             //    {
-            //        w.WriteLine(String.Join(";", range1));
-            //        w.WriteLine(String.Join(";", range2));
-            //        w.WriteLine(util);
+            //        bucketsUtil_zero[k] = SzuTrainer.buckets_data[k][1];
+            //        bucketsUtil_one[k] = SzuTrainer.buckets_data[k][3];
             //    }
-
+            //    using (StreamWriter w = File.AppendText(@"E:\Lowbot\Xrange.csv"))
+            //    {
+            //        w.WriteLine(String.Join(";", range1) + ";" + String.Join(";", range2));
+            //    }
+            //    using (StreamWriter w = File.AppendText(@"E:\Lowbot\Yrange.csv"))
+            //    {
+            //        w.WriteLine(String.Join(";", bucketsUtil_zero) + ";" + String.Join(";", bucketsUtil_one));
+            //    }
+            //    Console.WriteLine("Average runtime = {0}", DrawTrainer.GetTime(StopWatch.ElapsedMilliseconds / ((i + 1) * 1000)));
+            //    Console.WriteLine("Runtime = {0}", DrawTrainer.GetTime(StopWatch.ElapsedMilliseconds / 1000));
+            //    i++;
             //}
 
             //StopWatch.Stop();
@@ -118,13 +136,15 @@ namespace lowbotCFR
             //    StopWatch.Stop();
             //    Console.WriteLine("Runtime = {0}", DrawTrainer.GetTime(StopWatch.ElapsedMilliseconds / 1000));
             //}
+            Console.ReadKey();
         }
 
-        private static double[] GenerateRange(int num_buckets)
+        private static double[] GenerateRange(int num_buckets, Random rnd)
         {
-            Random rnd = new Random();
             double[] range = new double[num_buckets];
             double sum = 0.0;
+            double median_sum = 0.0;
+            bool median_flag = false;
 
             for (int i = 0; i < num_buckets; i++)
             {
@@ -134,6 +154,12 @@ namespace lowbotCFR
             for (int i = 0; i < num_buckets; i++)
             {
                 range[i] /= sum;
+                median_sum += range[i];
+                if (median_sum >= 0.5 && !median_flag)
+                {
+                    Console.WriteLine("Range median = {0}", i);
+                    median_flag = true;
+                }
             }
 
             return range;

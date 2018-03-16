@@ -110,7 +110,8 @@ namespace lowbotCFR
                 Console.Write("\rFilling Bucket {0}", i);
                 int BucketSize = (int)Math.Ceiling(Math.Exp(-lambda * i / NUM_BUCKETS) * scale);
                 BucketsDistinct[i] = Hands.GetRange(p, (i < NUM_BUCKETS - 1) ? BucketSize : Hands.Count - p).Distinct().ToList();
-                TextWriter tw = new StreamWriter(@"E:\Lowbot\Buckets\Bucket" + i.ToString() + ".txt");
+                Directory.CreateDirectory(@"E:\Lowbot\Buckets" + NUM_BUCKETS.ToString());
+                TextWriter tw = new StreamWriter(@"E:\Lowbot\Buckets" + NUM_BUCKETS.ToString() + @"\Bucket" + i.ToString() + ".txt");
                 //foreach (String s in Hands.GetRange(i*BucketSize, (i < NUM_BUCKETS - 1) ? BucketSize : Hands.Count - i*BucketSize))
                 foreach (String s in BucketsDistinct[i])
                     tw.WriteLine(s);
@@ -162,7 +163,7 @@ namespace lowbotCFR
             for (int i = 0; i < NUM_BUCKETS; i++)
             {
                 Console.Write("\rGetting Bucket {0}", i);
-                TextReader tw = new StreamReader(@"E:\Lowbot\Buckets\Bucket" + i.ToString() + ".txt");
+                TextReader tw = new StreamReader(@"E:\Lowbot\Buckets" + NUM_BUCKETS.ToString() + @"\Bucket" + i.ToString() + ".txt");
                 //foreach (String s in Hands.GetRange(i*BucketSize, (i < NUM_BUCKETS - 1) ? BucketSize : Hands.Count - i*BucketSize))
 
                 string line;
