@@ -2,6 +2,7 @@
  lowbot project
 =========================
 
+Self learning poker AI for 5 Card Draw.
 
 
 Licenses
