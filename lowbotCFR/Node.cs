@@ -11,12 +11,14 @@ namespace lowbotCFR
         public double[] Strategy;
         public double[] StrategySum;
         public double Realization;
+        public double NodeUtil;
         public int Count;
 
         public void Init(int num_actions, string ac, string info)
         {
             Count = 1;
             Realization = 0.0;
+            NodeUtil = 0.0;
             NumActions = num_actions;
             Actions = ac;
             InfoSet = info;
